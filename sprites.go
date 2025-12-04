@@ -8,7 +8,7 @@ import (
 
 var (
 	w = color.White
-	y = color.RGBA{187, 179, 57, 0xff}
+	y = color.RGBA{200, 200, 0, 0xff}
 	z = color.RGBA{0, 0, 0, 0}
 	x = color.Black
 	p = color.RGBA{138, 0, 196, 0xff}
@@ -51,14 +51,14 @@ var rBullet = [][]color.Color{
 }
 
 var fourFiveBullet = [][]color.Color{
-	{z, l, g, l, g, g, g, z},
-	{g, l, g, l, g, g, g, g},
-	{g, l, l, l, g, g, g, g},
-	{g, g, g, l, w, w, w, g},
-	{g, g, g, l, w, g, g, g},
-	{g, g, g, g, w, w, w, g},
-	{g, g, g, g, g, g, w, g},
-	{z, g, g, g, w, w, w, z},
+	{z, w, g, w, g, g, g, z},
+	{g, w, g, w, g, g, g, g},
+	{g, w, w, w, g, g, g, g},
+	{g, g, g, w, l, l, l, g},
+	{g, g, g, w, l, g, g, g},
+	{g, g, g, g, l, l, l, g},
+	{g, g, g, g, g, g, l, g},
+	{z, g, g, g, l, l, l, z},
 }
 
 // 5×7 font — per screenshot style
