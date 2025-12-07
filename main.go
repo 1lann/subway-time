@@ -3,12 +3,24 @@ package main
 import (
 	"image/color"
 	"log"
+	"os"
 	"sync"
 	"time"
 
 	owm "github.com/briandowns/openweathermap"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
+
+func mustGetEnv(env string) string {
+	if value := os.Getenv(env); value != "" {
+		return value
+	}
+
+	log.Panicln("env is required but is not set:", env)
+	panic("should be unreachable")
+}
+
+var owmKey = mustGetEnv("OPENWEATHERMAP_KEY")
 
 type WeatherTracker struct {
 	lastUpdated  time.Time
