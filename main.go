@@ -17,10 +17,8 @@ func mustGetEnv(env string) string {
 	}
 
 	log.Panicln("env is required but is not set:", env)
-	panic("should be unreachable")
+	panic("should not be reachable")
 }
-
-var owmKey = mustGetEnv("OPENWEATHERMAP_KEY")
 
 type WeatherTracker struct {
 	lastUpdated  time.Time
@@ -28,7 +26,7 @@ type WeatherTracker struct {
 }
 
 func (w *WeatherTracker) queryWeather() (string, error) {
-	oc, err := owm.NewOneCall("C", "EN", "1a0abbdb35839424e7bd8acbe577f92a", []string{})
+	oc, err := owm.NewOneCall("C", "EN", mustGetEnv("OPENWEATHERMAP_KEY"), []string{})
 	if err != nil {
 		return "", err
 	}
@@ -115,6 +113,7 @@ func matchingLines(minAway time.Duration, lines ...string) func(tripData *TripDa
 		return false
 	}
 }
+
 
 func isWeekday(t time.Time) bool {
 	d := t.Weekday()
@@ -222,19 +221,18 @@ func (l *LineApp) topic(awtrixPrefix string) string {
 }
 
 func main() {
-	// configure these to match your setup
-	const (
-		mqttBroker   = "tcp://192.168.1.198:1883" // your MQTT broker
-		mqttClientID = "subway-time"              // unique client ID
-		awtrixPrefix = "awtrix_420508"            // MQTT prefix configured in AWTRIX
-		updateEvery  = 15 * time.Second           // how often to refresh
+	var (
+		mqttBroker   = mustGetEnv("MQTT_ENDPOINT")      // like "tcp://192.168.1.198:1883"
+		mqttClientID = "subway-time"                    // unique client ID
+		awtrixPrefix = mustGetEnv("MQTT_AWTRIX_PREFIX") // like "awtrix_420508"
+		updateEvery  = 15 * time.Second                 // how often to refresh
 	)
 
 	opts := mqtt.NewClientOptions().
 		AddBroker(mqttBroker).
 		SetClientID(mqttClientID).
-		SetUsername("1lann").
-		SetPassword("AEO5ADG2n2Zf0UXZmFKCoQnGv99o-Bt3p5LcUlNVUzGB1y0taYddU3VaOr1ZXmKGs1T9wReOwE8RzKsMV2WR7P4PI17w91TjnEnh23LNq1-YkSm7-qLLNy-YiO593GMYZW_4xOD6YYHXLS1ptACmdYWvf2KWsGZJl7oakNJzgIGgGQCItAemdog")
+		SetUsername(mustGetEnv("MQTT_USERNAME")).
+		SetPassword(mustGetEnv("MQTT_PASSWORD"))
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
