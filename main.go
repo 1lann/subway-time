@@ -17,6 +17,7 @@ func mustGetEnv(env string) string {
 	}
 
 	log.Panicln("env is required but is not set:", env)
+	panic("should be unreachable")
 }
 
 type WeatherTracker struct {
