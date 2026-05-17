@@ -11,6 +11,7 @@ var (
 	y = color.RGBA{200, 200, 0, 0xff}
 	z = color.RGBA{0, 0, 0, 0}
 	x = color.Black
+	o = color.RGBA{0xFF, 0x64, 0x12, 0xff}
 	p = color.RGBA{138, 0, 196, 0xff}
 	r = color.RGBA{0xff, 0, 0, 0xff}
 	g = color.RGBA{0x00, 0xb7, 0x19, 0xff}
@@ -59,6 +60,28 @@ var fourFiveBullet = [][]color.Color{
 	{g, g, g, g, l, l, l, g},
 	{g, g, g, g, g, g, l, g},
 	{z, g, g, g, l, l, l, z},
+}
+
+var bBullet = [][]color.Color{
+	{z, o, o, o, o, o, o, z},
+	{o, o, x, x, x, o, o, o},
+	{o, o, x, o, o, x, o, o},
+	{o, o, x, x, x, o, o, o},
+	{o, o, x, o, o, x, o, o},
+	{o, o, x, o, o, x, o, o},
+	{o, o, x, x, x, o, o, o},
+	{z, o, o, o, o, o, o, z},
+}
+
+var qBullet = [][]color.Color{
+	{z, y, y, y, y, y, y, z},
+	{y, y, x, x, x, x, y, y},
+	{y, x, y, y, y, y, x, y},
+	{y, x, y, y, y, y, x, y},
+	{y, x, y, y, y, y, x, y},
+	{y, x, y, y, y, x, y, y},
+	{y, y, x, x, x, y, x, y},
+	{z, y, y, y, y, y, y, z},
 }
 
 // 5×7 font — per screenshot style

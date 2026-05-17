@@ -77,6 +77,7 @@ type LineApp struct {
 	TrainFilter func(tripData *TripData) bool
 	Direction   Direction
 	Station     string
+	IsVisible   func(t time.Time) bool
 	fetcherOnce sync.Once
 	fetcher     func() (*SubwayData, error)
 	lastData    *SubwayData
@@ -103,6 +104,11 @@ func matchingLines(minAway time.Duration, lines ...string) func(tripData *TripDa
 	}
 }
 
+func isWeekday(t time.Time) bool {
+	d := t.Weekday()
+	return d >= time.Monday && d <= time.Friday
+}
+
 var lines = []*LineApp{
 	{
 		ID:          "r_dekalb_north",
@@ -110,6 +116,15 @@ var lines = []*LineApp{
 		TrainFilter: matchingLines(2*time.Minute, "R"),
 		Direction:   DirectionNorth,
 		Station:     "R30",
+		IsVisible: func(t time.Time) bool {
+			// Weekdays 7:00–14:00
+			if !isWeekday(t) {
+				return false
+			}
+			h, m, _ := t.Clock()
+			mins := h*60 + m
+			return mins >= 7*60 && mins < 14*60
+		},
 	},
 	{
 		ID:          "45_nevins_north",
@@ -117,6 +132,55 @@ var lines = []*LineApp{
 		TrainFilter: matchingLines(4*time.Minute, "4", "5"),
 		Direction:   DirectionNorth,
 		Station:     "234",
+		IsVisible: func(t time.Time) bool {
+			// Weekdays 7:00–10:30
+			if !isWeekday(t) {
+				return false
+			}
+			h, m, _ := t.Clock()
+			mins := h*60 + m
+			return mins >= 7*60 && mins < 10*60+30
+		},
+	},
+	{
+		ID:          "q_dekalb_north",
+		Bullet:      qBullet,
+		TrainFilter: matchingLines(2*time.Minute, "Q"),
+		Direction:   DirectionNorth,
+		Station:     "R30",
+		IsVisible: func(t time.Time) bool {
+			// Weekdays 14:00–03:00 (next day), weekends all day (Sat 00:00–Mon 00:00)
+			d := t.Weekday()
+			h, m, _ := t.Clock()
+			mins := h*60 + m
+
+			// Saturday or Sunday: always visible
+			if d == time.Saturday || d == time.Sunday {
+				return true
+			}
+			// Weekday 14:00–23:59
+			if isWeekday(t) && mins >= 14*60 {
+				return true
+			}
+			// Weekday 00:00–03:00 (tail end of previous night)
+			if isWeekday(t) && mins < 3*60 {
+				return true
+			}
+			return false
+		},
+	},
+	{
+		ID:          "b_dekalb_north",
+		Bullet:      bBullet,
+		TrainFilter: matchingLines(2*time.Minute, "B"),
+		Direction:   DirectionNorth,
+		Station:     "R30",
+		IsVisible: func(t time.Time) bool {
+			// Every day 10:30–14:00
+			h, m, _ := t.Clock()
+			mins := h*60 + m
+			return mins >= 10*60+30 && mins < 14*60
+		},
 	},
 }
 
@@ -172,8 +236,16 @@ func main() {
 	var wt WeatherTracker
 
 	for ; true; <-ticker.C {
+		now := time.Now()
 		for _, app := range lines {
 			func() {
+				if !app.IsVisible(now) {
+					// Remove the custom app from AWTRIX
+					token := client.Publish(app.topic(awtrixPrefix), 0, false, "")
+					token.Wait()
+					return
+				}
+
 				data, err := app.fetch()
 				if err != nil {
 					log.Printf("fetch error: %v", err)
