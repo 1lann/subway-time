@@ -228,6 +228,12 @@ func main() {
 		updateEvery  = 15 * time.Second                 // how often to refresh
 	)
 
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		panic("Could not load America/New_York")
+	}
+
+
 	opts := mqtt.NewClientOptions().
 		AddBroker(mqttBroker).
 		SetClientID(mqttClientID).
@@ -246,7 +252,7 @@ func main() {
 	var wt WeatherTracker
 
 	for ; true; <-ticker.C {
-		now := time.Now()
+		now := time.Now().In(loc)
 		for _, app := range lines {
 			func() {
 				if !app.IsVisible(now) {
