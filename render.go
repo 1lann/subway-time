@@ -45,7 +45,7 @@ func buildAwtrixImagePayload(img image.Image, text string, weatherEffect string)
 			},
 		},
 		"lifetime": 60,
-		"duration": 4,
+		"duration": 3,
 		"noScroll": true,
 	}
 

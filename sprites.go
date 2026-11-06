@@ -84,6 +84,17 @@ var qBullet = [][]color.Color{
 	{z, y, y, y, y, y, y, z},
 }
 
+var nBullet = [][]color.Color{
+	{z, y, y, y, y, y, y, z},
+	{y, y, x, y, y, x, y, y},
+	{y, y, x, x, y, x, y, y},
+	{y, y, x, x, y, x, y, y},
+	{y, y, x, y, x, x, y, y},
+	{y, y, x, y, x, x, y, y},
+	{y, y, x, y, y, x, y, y},
+	{z, y, y, y, y, y, y, z},
+}
+
 // 5×7 font — per screenshot style
 var digits = map[rune][][]color.Color{
 	'0': {

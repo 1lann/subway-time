@@ -114,10 +114,18 @@ func matchingLines(minAway time.Duration, lines ...string) func(tripData *TripDa
 	}
 }
 
-
 func isWeekday(t time.Time) bool {
 	d := t.Weekday()
 	return d >= time.Monday && d <= time.Friday
+}
+
+func minsOfDay(t time.Time) int {
+	h, m, _ := t.Clock()
+	return h*60 + m
+}
+
+func between(mins, startH, startM, endH, endM int) bool {
+	return mins >= startH*60+startM && mins < endH*60+endM
 }
 
 var lines = []*LineApp{
@@ -128,13 +136,8 @@ var lines = []*LineApp{
 		Direction:   DirectionNorth,
 		Station:     "R30",
 		IsVisible: func(t time.Time) bool {
-			// Weekdays 7:00–14:00
-			if !isWeekday(t) {
-				return false
-			}
-			h, m, _ := t.Clock()
-			mins := h*60 + m
-			return mins >= 7*60 && mins < 14*60
+			// Weekdays 07:00–10:00
+			return isWeekday(t) && between(minsOfDay(t), 7, 0, 10, 0)
 		},
 	},
 	{
@@ -144,13 +147,8 @@ var lines = []*LineApp{
 		Direction:   DirectionNorth,
 		Station:     "234",
 		IsVisible: func(t time.Time) bool {
-			// Weekdays 7:00–10:30
-			if !isWeekday(t) {
-				return false
-			}
-			h, m, _ := t.Clock()
-			mins := h*60 + m
-			return mins >= 7*60 && mins < 10*60+30
+			// Weekdays 07:00–10:00
+			return isWeekday(t) && between(minsOfDay(t), 7, 0, 10, 0)
 		},
 	},
 	{
@@ -160,24 +158,8 @@ var lines = []*LineApp{
 		Direction:   DirectionNorth,
 		Station:     "R30",
 		IsVisible: func(t time.Time) bool {
-			// Weekdays 14:00–03:00 (next day), weekends all day (Sat 00:00–Mon 00:00)
-			d := t.Weekday()
-			h, m, _ := t.Clock()
-			mins := h*60 + m
-
-			// Saturday or Sunday: always visible
-			if d == time.Saturday || d == time.Sunday {
-				return true
-			}
-			// Weekday 14:00–23:59
-			if isWeekday(t) && mins >= 14*60 {
-				return true
-			}
-			// Weekday 00:00–03:00 (tail end of previous night)
-			if isWeekday(t) && mins < 3*60 {
-				return true
-			}
-			return false
+			// Every day 10:00–21:30
+			return between(minsOfDay(t), 10, 0, 21, 30)
 		},
 	},
 	{
@@ -187,12 +169,39 @@ var lines = []*LineApp{
 		Direction:   DirectionNorth,
 		Station:     "R30",
 		IsVisible: func(t time.Time) bool {
-			// Every day 10:30–14:00
-			h, m, _ := t.Clock()
-			mins := h*60 + m
-			return mins >= 10*60+30 && mins < 14*60
+			mins := minsOfDay(t)
+			if isWeekday(t) {
+				// Weekdays 10:00–14:00
+				return between(mins, 10, 0, 14, 0)
+			}
+			// Weekends 10:00–21:30
+			return between(mins, 10, 0, 21, 30)
 		},
 	},
+	{
+		ID:          "r_dekalb_south",
+		Bullet:      rBullet,
+		TrainFilter: matchingLines(2*time.Minute, "R"),
+		Direction:   DirectionSouth,
+		Station:     "R30",
+		// Late nights the R stops serving DeKalb; the N takes over.
+		IsVisible: lateNight,
+	},
+	{
+		ID:          "n_dekalb_south",
+		Bullet:      nBullet,
+		TrainFilter: matchingLines(2*time.Minute, "N"),
+		Direction:   DirectionSouth,
+		Station:     "R30",
+		// The N only stops at DeKalb late nights.
+		IsVisible: lateNight,
+	},
+}
+
+// lateNight: every night 21:30–02:00 (next day).
+func lateNight(t time.Time) bool {
+	mins := minsOfDay(t)
+	return mins >= 21*60+30 || mins < 2*60
 }
 
 const dataCacheDuration = time.Second * 60
@@ -233,7 +242,6 @@ func main() {
 		panic("Could not load America/New_York")
 	}
 
-
 	opts := mqtt.NewClientOptions().
 		AddBroker(mqttBroker).
 		SetClientID(mqttClientID).
@@ -268,14 +276,15 @@ func main() {
 					return
 				}
 
-				img := SubwayDataToImage(data, app.Bullet)
-
-				var text string
 				if len(data.NextTrains) == 0 {
-					text = "N/A..."
+					// No trains coming (e.g. line not running now): hide the app.
+					token := client.Publish(app.topic(awtrixPrefix), 0, false, "")
+					token.Wait()
+					return
 				}
 
-				payload, err := buildAwtrixImagePayload(img, text, wt.getWeatherEffect())
+				img := SubwayDataToImage(data, app.Bullet)
+				payload, err := buildAwtrixImagePayload(img, "", wt.getWeatherEffect())
 				if err != nil {
 					log.Printf("payload build error: %v", err)
 					return
